@@ -32,10 +32,14 @@
     margin:0;
     min-height:100vh;
     min-height:100dvh;
-    background:
+    background-color:var(--bg);
+    background-image:
       radial-gradient(circle at 12% -10%, rgba(255,77,109,.16), transparent 45%),
-      radial-gradient(circle at 100% 10%, rgba(79,180,255,.14), transparent 40%),
-      var(--bg);
+      radial-gradient(circle at 100% 10%, rgba(79,180,255,.14), transparent 40%);
+    background-repeat:no-repeat;
+    background-position:top left, top right;
+    background-size:100vw 100vh, 100vw 100vh;
+    background-attachment:fixed, fixed;
     color:var(--ink);
     font-family:"Manrope",-apple-system,sans-serif;
     padding:calc(26px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(70px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
@@ -80,15 +84,16 @@
 
   .tabs{
     display:flex;
+    flex-wrap:wrap;
     gap:10px;
     margin-bottom:24px;
   }
   .tabs button{
-    flex:1;
+    flex:1 1 100px;
     font-family:"Unbounded",sans-serif;
-    font-size:.8rem;
+    font-size:.78rem;
     font-weight:700;
-    padding:15px 10px;
+    padding:15px 8px;
     min-height:48px;
     border:none;
     border-radius:14px;
@@ -127,9 +132,18 @@
     letter-spacing:.4px;
     padding:4px 9px;
     border-radius:20px;
+    background:var(--line);
+    color:var(--muted);
   }
   .tag.odd{ background:var(--odd-soft2); color:#ffb3c1; }
   .tag.even{ background:var(--even-soft2); color:#bfe4ff; }
+  .pair-time .tag{
+    display:inline-block;
+    margin-left:6px;
+    vertical-align:middle;
+    font-size:.6rem;
+    padding:3px 8px;
+  }
 
   .day-sub{
     font-size:.8rem;
@@ -219,11 +233,12 @@
   <div class="tabs">
     <button id="btnToday" class="active">Сегодня / завтра</button>
     <button id="btnWeek">Вся неделя</button>
+    <button id="btnAll">Всё расписание</button>
   </div>
 
   <div id="content"></div>
 
-  <footer>Открывай в любой момент — дата и чётность недели считаются сами ✨</footer>
+  <footer>Открывай в любой момент — дата и чётность недели считаются сами ✨<br>with love by Sergei 3526</footer>
 </div>
 
 <script>
@@ -365,6 +380,44 @@ function renderPairs(dayName, parityOdd){
   `).join("");
 }
 
+function renderAllPairs(dayName){
+  const pairs = schedule[dayName] || [];
+  const visible = [];
+  pairs.forEach(p=>{
+    p.items.forEach(it=>{
+      visible.push({time:p.time, ...it});
+    });
+  });
+  if(visible.length === 0){
+    return '<div class="empty">Сегодня пар нет, ура :3</div>';
+  }
+  return visible.map(it => `
+    <div class="pair ${it.parity}">
+      <div class="pair-time">${it.time} <span class="tag ${it.parity==='odd'?'odd':it.parity==='even'?'even':''}">${it.parity==='odd'?'нечётная':it.parity==='even'?'чётная':'кажд. неделя'}</span></div>
+      <div class="pair-subject">${it.subject}</div>
+      <div class="pair-type">${it.type}</div>
+      <div class="pair-detail">${it.detail}</div>
+    </div>
+  `).join("");
+}
+
+function allDayBlock(dayName){
+  return `
+    <div class="day-block">
+      <div class="day-title">${dayName}</div>
+      ${renderAllPairs(dayName)}
+    </div>
+  `;
+}
+
+function renderAll(){
+  let html = "";
+  dayOrder.forEach(dayName=>{
+    html += allDayBlock(dayName);
+  });
+  document.getElementById("content").innerHTML = html;
+}
+
 function dayBlock(date){
   const dayName = ruDayName(date);
   const parityOdd = isOddWeek(date);
@@ -405,16 +458,24 @@ function updateMeta(){
 
 const btnToday = document.getElementById("btnToday");
 const btnWeek = document.getElementById("btnWeek");
+const btnAll = document.getElementById("btnAll");
+const tabButtons = [btnToday, btnWeek, btnAll];
+
+function setActive(btn){
+  tabButtons.forEach(b=>b.classList.toggle("active", b===btn));
+}
 
 btnToday.addEventListener("click", ()=>{
-  btnToday.classList.add("active");
-  btnWeek.classList.remove("active");
+  setActive(btnToday);
   renderToday();
 });
 btnWeek.addEventListener("click", ()=>{
-  btnWeek.classList.add("active");
-  btnToday.classList.remove("active");
+  setActive(btnWeek);
   renderWeek();
+});
+btnAll.addEventListener("click", ()=>{
+  setActive(btnAll);
+  renderAll();
 });
 
 updateMeta();
